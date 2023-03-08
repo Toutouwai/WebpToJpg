@@ -1,6 +1,6 @@
 # WEBP to JGP
 
-Converts WEBP images to JPG format on upload. This allows the converted image to be used in ProcessWire image fields.
+Converts WEBP images to JPG format on upload. This allows the converted image to be used in ProcessWire image fields, seeing as WEBP is not supported as a source image format.
 
 ## Config
 
