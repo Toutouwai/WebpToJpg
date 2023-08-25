@@ -24,34 +24,46 @@ class WebpToJpg extends WireData implements Module, ConfigurableModule {
 	 */
 	protected function beforeImageAdded(HookEvent $event) {
 
-		$filename = $event->arguments(0);
+		$basename = $event->arguments(0);
 		/* @var InputfieldImage $inputfield */
 		$inputfield = $event->object;
 		// Only for InputfieldImage
 		if(!$inputfield instanceof InputfieldImage) return;
 
 		// Return early if image does not have webp extension
-		$ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+		$ext = strtolower(pathinfo($basename, PATHINFO_EXTENSION));
 		if($ext !== 'webp') return;
 
 		$pageimages = $inputfield->value;
-		$file = $pageimages->path() . $filename;
-		$dirpath = $pageimages->path();
-		$path_parts = pathinfo($file);
+		$filename = $pageimages->path() . $basename;
+
+		$event->arguments(0, $this->convertToWebp($filename));
+	}
+
+	/**
+	 * Convert the supplied image to WEBP format
+	 *
+	 * @param string $filename
+	 * @return string
+	 */
+	public function convertToWebp($filename) {
+
+		$path_parts = pathinfo($filename);
+		$dirname = $path_parts['dirname'] . '/';
 
 		// Basename for converted image
 		$basename = $path_parts['filename'] . '.jpg';
 		// Adjust basename if it will clash with an existing file
 		$i = 1;
-		while(is_file($dirpath . $basename)) {
+		while(is_file($dirname . $basename)) {
 			$basename = "{$path_parts['filename']}-$i.jpg";
 			$i++;
 		}
-		$filepath = $dirpath . $basename;
+		$new_filename = $dirname . $basename;
 
 		// Use ImageMagick if installed, otherwise GD
 		if(extension_loaded('imagick')) {
-			$image = new \Imagick($file);
+			$image = new \Imagick($filename);
 
 			// Not sure if the following are needed but just in case
 			$image->setImageBackgroundColor('white');
@@ -61,21 +73,21 @@ class WebpToJpg extends WireData implements Module, ConfigurableModule {
 			$image->setImageCompression(\Imagick::COMPRESSION_JPEG);
 			$image->setImageCompressionQuality($this->quality);
 			$image->setImageFormat('jpg');
-			$image->writeImage($filepath);
+			$image->writeImage($new_filename);
 
 		} else {
 
-			if(!function_exists('imagecreatefromwebp')) return;
-			$image = imagecreatefromwebp($file);
-			imagejpeg($image, $filepath, $this->quality);
+			if(!function_exists('imagecreatefromwebp')) return $filename;
+			$image = imagecreatefromwebp($filename);
+			imagejpeg($image, $new_filename, $this->quality);
 			imagedestroy($image);
 
 		}
 
 		// Delete original
-		unlink($file);
+		unlink($filename);
 
-		$event->arguments(0, $filepath);
+		return $new_filename;
 	}
 
 	/**
