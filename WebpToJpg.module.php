@@ -41,7 +41,7 @@ class WebpToJpg extends WireData implements Module, ConfigurableModule {
 	}
 
 	/**
-	 * Convert the supplied image to WEBP format
+	 * Convert the supplied image to WebP format
 	 *
 	 * @param string $filename
 	 * @return string
