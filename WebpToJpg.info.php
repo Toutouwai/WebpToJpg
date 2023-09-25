@@ -1,7 +1,7 @@
 <?php namespace ProcessWire;
 
 $info = array(
-	'title' => 'WebP to JGP',
+	'title' => 'WebP to JPG',
 	'summary' => 'Converts WebP images to JPG on upload.',
 	'version' => '0.2.0',
 	'author' => 'Robin Sallis',
