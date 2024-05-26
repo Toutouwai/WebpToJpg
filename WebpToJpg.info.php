@@ -3,7 +3,7 @@
 $info = array(
 	'title' => 'WebP to JPG',
 	'summary' => 'Converts WebP images to JPG on upload.',
-	'version' => '0.2.0',
+	'version' => '0.2.1',
 	'author' => 'Robin Sallis',
 	'href' => 'https://github.com/Toutouwai/WebpToJpg',
 	'icon' => 'arrow-circle-right',

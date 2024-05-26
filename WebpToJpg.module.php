@@ -2,11 +2,14 @@
 
 class WebpToJpg extends WireData implements Module, ConfigurableModule {
 
+	protected $envFailMessage;
+
 	/**
 	 * Construct
 	 */
 	public function __construct() {
 		parent::__construct();
+		$this->envFailMessage = $this->_('You cannot use the WebpToJpg module because your environment has neither the Imagick extension nor the GD imagecreatefromwebp() function.');
 		$this->quality = 100;
 	}
 
@@ -77,7 +80,10 @@ class WebpToJpg extends WireData implements Module, ConfigurableModule {
 
 		} else {
 
-			if(!function_exists('imagecreatefromwebp')) return $filename;
+			if(!function_exists('imagecreatefromwebp')) {
+				$this->wire()->session->error($this->envFailMessage);
+				return $filename;
+			}
 			$image = imagecreatefromwebp($filename);
 			imagejpeg($image, $new_filename, $this->quality);
 			imagedestroy($image);
@@ -106,6 +112,15 @@ class WebpToJpg extends WireData implements Module, ConfigurableModule {
 		$f->value = $this->$f_name;
 		$inputfields->add($f);
 
+	}
+
+	/**
+	 * Install
+	 */
+	public function ___install() {
+		if(!extension_loaded('imagick') && !function_exists('imagecreatefromwebp')) {
+			$this->wire()->error($this->envFailMessage);
+		}
 	}
 
 }
