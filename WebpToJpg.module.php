@@ -51,6 +51,10 @@ class WebpToJpg extends WireData implements Module, ConfigurableModule {
 	 */
 	public function convertToWebp($filename) {
 
+		// Get converter and throw exception if environment fails
+		$converter = $this->getConverter();
+		if(!$converter) throw new WireException($this->envFailMessage);
+
 		$path_parts = pathinfo($filename);
 		$dirname = $path_parts['dirname'] . '/';
 
@@ -64,8 +68,8 @@ class WebpToJpg extends WireData implements Module, ConfigurableModule {
 		}
 		$new_filename = $dirname . $basename;
 
-		// Use ImageMagick if installed, otherwise GD
-		if(extension_loaded('imagick')) {
+		// Convert image to JPG using selected or available converter
+		if($converter === 'imagick') {
 			$image = new \Imagick($filename);
 
 			// Not sure if the following are needed but just in case
@@ -80,10 +84,6 @@ class WebpToJpg extends WireData implements Module, ConfigurableModule {
 
 		} else {
 
-			if(!function_exists('imagecreatefromwebp')) {
-				$this->wire()->session->error($this->envFailMessage);
-				return $filename;
-			}
 			$image = imagecreatefromwebp($filename);
 			imagejpeg($image, $new_filename, $this->quality);
 			imagedestroy($image);
@@ -97,14 +97,44 @@ class WebpToJpg extends WireData implements Module, ConfigurableModule {
 	}
 
 	/**
+	 * Get the selected or available converter software
+	 */
+	protected function getConverter() {
+		$converter = $this->converter;
+		if(!$converter) $converter = 'imagick';
+		if($converter === 'imagick' && !extension_loaded('imagick')) {
+			$converter = 'gd';
+		}
+		if($converter === 'gd' && !function_exists('imagecreatefromwebp')) {
+			$converter = false;
+		}
+		return $converter;
+	}
+
+	/**
 	 * Config inputfields
 	 *
 	 * @param InputfieldWrapper $inputfields
 	 */
 	public function getModuleConfigInputfields($inputfields) {
+		$modules = $this->wire()->modules;
+
+		$converter = $this->getConverter();
+		if(!$converter) $this->wire()->error($this->envFailMessage);
+
+		/** @var InputfieldRadios $f */
+		$f = $modules->get('InputfieldRadios');
+		$f->name = 'converter';
+		$f->label = $this->_('Image converter');
+		$f->notes = $this->_('If an option is disabled here it means that the necessary software is not available in your environment.');
+		$f->addOption('imagick', 'Imagick', ['disabled' => !extension_loaded('imagick')]);
+		$f->addOption('gd', 'GD', ['disabled' => !function_exists('imagecreatefromwebp')]);
+		$f->optionColumns = 1;
+		if($converter) $f->value = $converter;
+		$inputfields->add($f);
 
 		/* @var InputfieldInteger $f */
-		$f = $this->wire()->modules->get('InputfieldInteger');
+		$f = $modules->get('InputfieldInteger');
 		$f_name = 'quality';
 		$f->name = $f_name;
 		$f->label = $this->_('Quality for JPG conversion');
@@ -112,15 +142,6 @@ class WebpToJpg extends WireData implements Module, ConfigurableModule {
 		$f->value = $this->$f_name;
 		$inputfields->add($f);
 
-	}
-
-	/**
-	 * Install
-	 */
-	public function ___install() {
-		if(!extension_loaded('imagick') && !function_exists('imagecreatefromwebp')) {
-			$this->wire()->error($this->envFailMessage);
-		}
 	}
 
 }
